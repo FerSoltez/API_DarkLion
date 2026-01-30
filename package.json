@@ -16,15 +16,19 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.10",
     "@types/sequelize": "^4.28.20",
+    "cloudinary": "^2.9.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "mariadb": "^3.4.5",
+    "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.16.2",
     "sequelize": "^6.37.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@types/multer": "^2.0.0",
     "nodemon": "^3.1.11"
   }
 }

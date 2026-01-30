@@ -1,6 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import clientRoutes from './routes/clientRoutes';
+import './config/cloudinaryConfig';
 
 // Cargar variables de entorno desde el archivo .env
 dotenv.config();
