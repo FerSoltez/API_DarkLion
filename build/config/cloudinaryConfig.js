@@ -13,6 +13,9 @@ cloudinary_1.v2.config({
 });
 if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
     console.log('Cloudinary configurado correctamente');
+    cloudinary_1.v2.api.ping()
+        .then(() => console.log('Conexión a Cloudinary exitosa.'))
+        .catch((error) => console.error('Error al conectar con Cloudinary:', error.message));
 }
 else {
     console.warn('Cloudinary no configurado: faltan variables de entorno');

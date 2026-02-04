@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const clientRoutes_1 = __importDefault(require("./routes/clientRoutes"));
+require("./config/cloudinaryConfig");
 // Cargar variables de entorno desde el archivo .env
 dotenv_1.default.config();
 // Crear la aplicación Express
