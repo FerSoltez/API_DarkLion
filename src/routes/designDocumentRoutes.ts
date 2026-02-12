@@ -12,6 +12,9 @@ router.post('/design-documents', designDocumentController.createDesignDocument);
 // Usamos /design-documents/all para diferenciar de la creación si se usa la raíz
 router.post('/design-documents/all', designDocumentController.getAllDesignDocuments);
 
+// Generar orden de producción (.xlsx) — debe ir ANTES de /:id para que no se confunda
+router.post('/design-documents/generate-order', designDocumentController.generateProductionOrder);
+
 // Obtener un documento por ID (POST según requerimiento)
 router.post('/design-documents/:id', designDocumentController.getDesignDocumentById);
 
@@ -20,8 +23,5 @@ router.patch('/design-documents/:id', designDocumentController.updateDesignDocum
 
 // Eliminar un documento (DELETE)
 router.delete('/design-documents/:id', designDocumentController.deleteDesignDocument);
-
-// Generar orden de producción (.xlsx)
-router.post('/design-documents/generate-order', designDocumentController.generateProductionOrder);
 
 export default router;
