@@ -1,11 +1,13 @@
 """
 generate_xlsx.py — Script para generar órdenes de producción (.xlsx)
 Recibe datos por JSON y usa openpyxl para escribir en la plantilla.
+Restaura imágenes originales que openpyxl pierde al guardar.
 
 Uso: python generate_xlsx.py <input_json_path> <output_xlsx_path>
 """
 import sys
 import json
+import zipfile
 import os
 import openpyxl
 
@@ -48,7 +50,7 @@ def generate(input_json_path: str, output_path: str):
     ws['L5'] = folio
     ws['L6'] = fecha_pedido
     ws['D9'] = cliente
-    ws['K12'] = f'{cantidad_total}'
+    ws['K12'] = f'{cantidad_total} PLAYERAS'
     ws['C19'] = tela
     ws['H19'] = modelo
 
@@ -70,9 +72,40 @@ def generate(input_json_path: str, output_path: str):
 
         ws[cell_addr] = cantidad
 
-    # --- 4. Guardar directamente con openpyxl ---
-    wb.save(output_path)
+    # --- 4. Guardar con openpyxl (temporal) ---
+    temp_file = output_path + '.tmp.xlsx'
+    wb.save(temp_file)
     wb.close()
+
+    # --- 5. Restaurar imágenes originales ---
+    # openpyxl pierde las imágenes al guardar. Tomamos el archivo generado
+    # por openpyxl (con datos correctos) y le inyectamos de vuelta los
+    # archivos de media, drawings y sus rels desde la plantilla original.
+    orig_files = {}
+    with zipfile.ZipFile(template_path, 'r') as orig_zip:
+        for name in orig_zip.namelist():
+            if ('media/' in name or 'drawings/' in name):
+                orig_files[name] = orig_zip.read(name)
+
+    with zipfile.ZipFile(temp_file, 'r') as gen_zip:
+        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as out_zip:
+            # Copiar todo lo que generó openpyxl
+            for item in gen_zip.infolist():
+                data = gen_zip.read(item.filename)
+                # Reemplazar media/drawings con las originales si existen
+                if item.filename in orig_files:
+                    data = orig_files[item.filename]
+                out_zip.writestr(item.filename, data)
+
+            # Agregar archivos originales que openpyxl haya omitido
+            gen_names = set(gen_zip.namelist())
+            for name, data in orig_files.items():
+                if name not in gen_names:
+                    out_zip.writestr(name, data)
+
+    # Limpiar temporal
+    if os.path.exists(temp_file):
+        os.remove(temp_file)
 
     print(json.dumps({'success': True, 'output': output_path}))
 
