@@ -1,6 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import clientRoutes from './routes/clientRoutes';
+import designDocumentRoutes from './routes/designDocumentRoutes';
 import './config/cloudinaryConfig';
 
 // Cargar variables de entorno desde el archivo .env
@@ -14,6 +15,7 @@ app.use(express.json());
 
 // Rutas
 app.use('/api', clientRoutes);
+app.use('/api', designDocumentRoutes);
 
 // Ruta de prueba
 app.get('/', (req: Request, res: Response, next: NextFunction) => {

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const clientRoutes_1 = __importDefault(require("./routes/clientRoutes"));
+const designDocumentRoutes_1 = __importDefault(require("./routes/designDocumentRoutes"));
 require("./config/cloudinaryConfig");
 // Cargar variables de entorno desde el archivo .env
 dotenv_1.default.config();
@@ -15,6 +16,7 @@ const app = (0, express_1.default)();
 app.use(express_1.default.json());
 // Rutas
 app.use('/api', clientRoutes_1.default);
+app.use('/api', designDocumentRoutes_1.default);
 // Ruta de prueba
 app.get('/', (req, res, next) => {
     res.send('¡API en funcionamiento!');

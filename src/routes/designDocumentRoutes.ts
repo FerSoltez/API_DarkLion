@@ -21,4 +21,7 @@ router.patch('/design-documents/:id', designDocumentController.updateDesignDocum
 // Eliminar un documento (DELETE)
 router.delete('/design-documents/:id', designDocumentController.deleteDesignDocument);
 
+// Generar orden de producción (.xlsx)
+router.post('/design-documents/generate-order', designDocumentController.generateProductionOrder);
+
 export default router;
