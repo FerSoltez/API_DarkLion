@@ -44,10 +44,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const DesignDocument_1 = require("../models/DesignDocument");
 const cloudinary_1 = require("cloudinary");
-const ExcelJS = __importStar(require("exceljs"));
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
 const os = __importStar(require("os"));
+// xlsx-populate no tiene tipos de TS, se importa con require
+const XlsxPopulate = require('xlsx-populate');
 // Mapa de tallas: tipo -> talla -> celda de Excel
 const MAPA_TALLAS = {
     DAMA: {
@@ -63,15 +64,6 @@ const MAPA_TALLAS = {
         XXL: 'P21', XXXL: 'R21', XXXL2: 'T21',
     },
 };
-/**
- * Escribe un valor en una celda conservando el estilo original de la plantilla.
- */
-function setCellValue(worksheet, cellAddress, value) {
-    const cell = worksheet.getCell(cellAddress);
-    const currentStyle = Object.assign({}, cell.style);
-    cell.value = value;
-    cell.style = currentStyle;
-}
 const designDocumentController = {
     // Crear un nuevo documento de diseño
     createDesignDocument: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -152,26 +144,26 @@ const designDocumentController = {
                 res.status(400).json({ message: 'Faltan campos requeridos: id_design, folio, fecha_pedido, cliente, cantidad_total, tela, modelo, tallas' });
                 return;
             }
-            // ─── 1. Cargar la plantilla ────────────────────────────────
+            // ─── 1. Cargar la plantilla con xlsx-populate ─────────────
             const templatePath = path.join(process.cwd(), 'templates', 'Plantilla Excel.xlsx');
             if (!fs.existsSync(templatePath)) {
                 res.status(404).json({ message: 'La plantilla "Plantilla Excel.xlsx" no fue encontrada en /templates' });
                 return;
             }
-            const workbook = new ExcelJS.Workbook();
-            yield workbook.xlsx.readFile(templatePath);
-            const worksheet = workbook.getWorksheet(1);
-            if (!worksheet) {
+            // xlsx-populate preserva colores, imágenes, merges y todo el formato original
+            const workbook = yield XlsxPopulate.fromFileAsync(templatePath);
+            const sheet = workbook.sheet(0);
+            if (!sheet) {
                 res.status(500).json({ message: 'No se encontró una hoja en la plantilla' });
                 return;
             }
             // ─── 2. Escribir datos fijos en las celdas ─────────────────
-            setCellValue(worksheet, 'L5', folio);
-            setCellValue(worksheet, 'L6', fecha_pedido);
-            setCellValue(worksheet, 'D9', cliente);
-            setCellValue(worksheet, 'K12', `${cantidad_total} PLAYERAS`);
-            setCellValue(worksheet, 'C19', tela);
-            setCellValue(worksheet, 'H19', modelo);
+            sheet.cell('L5').value(folio);
+            sheet.cell('L6').value(fecha_pedido);
+            sheet.cell('D9').value(cliente);
+            sheet.cell('K12').value(`${cantidad_total} PLAYERAS`);
+            sheet.cell('C19').value(tela);
+            sheet.cell('H19').value(modelo);
             // ─── 3. Escribir tallas (X si cantidad=1, número si >1) ────
             for (const tallaDetail of tallas) {
                 const tipoKey = tallaDetail.tipo.toUpperCase();
@@ -187,13 +179,13 @@ const designDocumentController = {
                     return;
                 }
                 const valorCelda = tallaDetail.cantidad === 1 ? 'X' : tallaDetail.cantidad;
-                setCellValue(worksheet, cellAddress, valorCelda);
+                sheet.cell(cellAddress).value(valorCelda);
             }
             // ─── 4. Guardar archivo temporalmente ──────────────────────
             const clienteSanitizado = cliente.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '');
             const tempFileName = `${clienteSanitizado}.xlsx`;
             const tempFilePath = path.join(os.tmpdir(), tempFileName);
-            yield workbook.xlsx.writeFile(tempFilePath);
+            yield workbook.toFileAsync(tempFilePath);
             // ─── 5. Subir a Cloudinary (carpeta ordenes_produccion) ────
             let uploadResult;
             try {
