@@ -1,13 +1,11 @@
 """
 generate_xlsx.py — Script para generar órdenes de producción (.xlsx)
 Recibe datos por JSON y usa openpyxl para escribir en la plantilla.
-Luego restaura las imágenes originales del ZIP.
 
 Uso: python generate_xlsx.py <input_json_path> <output_xlsx_path>
 """
 import sys
 import json
-import zipfile
 import os
 import openpyxl
 
@@ -72,47 +70,9 @@ def generate(input_json_path: str, output_path: str):
 
         ws[cell_addr] = cantidad
 
-    # --- 4. Guardar con openpyxl (temporal) ---
-    temp_openpyxl = output_path + '.tmp.xlsx'
-    wb.save(temp_openpyxl)
+    # --- 4. Guardar directamente con openpyxl ---
+    wb.save(output_path)
     wb.close()
-
-    # --- 5. Restaurar imágenes originales del ZIP ---
-    # Leer archivos media/drawing del original
-    orig_media = {}
-    with zipfile.ZipFile(template_path, 'r') as orig_zip:
-        for name in orig_zip.namelist():
-            if any(x in name for x in ['media/', 'drawings/']):
-                orig_media[name] = orig_zip.read(name)
-
-    # Reconstruir el ZIP final con openpyxl output + imágenes originales
-    with zipfile.ZipFile(temp_openpyxl, 'r') as gen_zip:
-        gen_names = set(gen_zip.namelist())
-        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as out_zip:
-            for item in gen_zip.infolist():
-                file_data = gen_zip.read(item.filename)
-
-                # Para archivos media, usar STORED (sin compresión) como el original
-                if item.filename in orig_media:
-                    file_data = orig_media[item.filename]
-                    if 'media/' in item.filename:
-                        out_zip.writestr(item.filename, file_data, compress_type=zipfile.ZIP_STORED)
-                    else:
-                        out_zip.writestr(item.filename, file_data, compress_type=zipfile.ZIP_DEFLATED)
-                else:
-                    out_zip.writestr(item.filename, file_data, compress_type=zipfile.ZIP_DEFLATED)
-
-            # Agregar archivos media que openpyxl pueda haber omitido
-            for name, file_data in orig_media.items():
-                if name not in gen_names:
-                    if 'media/' in name:
-                        out_zip.writestr(name, file_data, compress_type=zipfile.ZIP_STORED)
-                    else:
-                        out_zip.writestr(name, file_data, compress_type=zipfile.ZIP_DEFLATED)
-
-    # Limpiar temporal
-    if os.path.exists(temp_openpyxl):
-        os.remove(temp_openpyxl)
 
     print(json.dumps({'success': True, 'output': output_path}))
 
