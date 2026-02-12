@@ -4,25 +4,10 @@ import { v2 as cloudinary } from 'cloudinary';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 
-// xlsx-populate no tiene tipos de TS, se importa con require
-const XlsxPopulate = require('xlsx-populate');
-
-// Mapa de tallas: tipo -> talla -> celda de Excel
-const MAPA_TALLAS: Record<string, Record<string, string>> = {
-  DAMA: {
-    XCH: 'F22', CH: 'H22', MD: 'J22', GD: 'L22', XL: 'N22',
-    XXL: 'P22', XXXL: 'R22',
-  },
-  CABALLERO: {
-    XCH: 'F23', CH: 'H23', MD: 'J23', GD: 'L23', XL: 'N23',
-    XXL: 'P23', XXXL: 'R23',
-  },
-  INFANTIL: {
-    XCH: 'F21', CH: 'H21', MD: 'J21', GD: 'L21', XL: 'N21',
-    XXL: 'P21', XXXL: 'R21', XXXL2: 'T21',
-  },
-};
+const execFileAsync = promisify(execFile);
 
 const designDocumentController = {
   // Crear un nuevo documento de diseño
@@ -111,63 +96,64 @@ const designDocumentController = {
         return;
       }
 
-      // ─── 1. Cargar la plantilla con xlsx-populate ─────────────
+      // ─── 1. Verificar plantilla ────────────────────────────────
       const templatePath = path.join(process.cwd(), 'templates', 'Plantilla Excel.xlsx');
-
       if (!fs.existsSync(templatePath)) {
         res.status(404).json({ message: 'La plantilla "Plantilla Excel.xlsx" no fue encontrada en /templates' });
         return;
       }
 
-      // xlsx-populate preserva colores, imágenes, merges y todo el formato original
-      const workbook = await XlsxPopulate.fromFileAsync(templatePath);
-      const sheet = workbook.sheet(0);
+      // ─── 2. Preparar datos para el script Python ──────────────
+      const clienteSanitizado = cliente.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '');
+      const inputData = {
+        template_path: templatePath,
+        folio,
+        fecha_pedido,
+        cliente,
+        cantidad_total,
+        tela,
+        modelo,
+        tallas,
+      };
 
-      if (!sheet) {
-        res.status(500).json({ message: 'No se encontró una hoja en la plantilla' });
+      const tempJsonPath = path.join(os.tmpdir(), `order_input_${Date.now()}.json`);
+      const outputXlsxPath = path.join(os.tmpdir(), `${clienteSanitizado}.xlsx`);
+
+      fs.writeFileSync(tempJsonPath, JSON.stringify(inputData, null, 2), 'utf8');
+
+      // ─── 3. Ejecutar script Python (openpyxl) ─────────────────
+      const scriptPath = path.join(process.cwd(), 'scripts', 'generate_xlsx.py');
+
+      try {
+        const { stdout, stderr } = await execFileAsync('python', [scriptPath, tempJsonPath, outputXlsxPath]);
+
+        if (stderr) {
+          console.warn('Python warnings:', stderr);
+        }
+
+        const result = JSON.parse(stdout);
+        if (!result.success) {
+          throw new Error(result.error || 'Error desconocido en el script Python');
+        }
+      } catch (pyError: any) {
+        // Limpiar temporales
+        if (fs.existsSync(tempJsonPath)) fs.unlinkSync(tempJsonPath);
+        if (fs.existsSync(outputXlsxPath)) fs.unlinkSync(outputXlsxPath);
+
+        res.status(500).json({
+          message: 'Error al generar el archivo Excel',
+          error: pyError.message || pyError.stderr || String(pyError),
+        });
         return;
       }
 
-      // ─── 2. Escribir datos fijos en las celdas ─────────────────
-      sheet.cell('L5').value(folio);
-      sheet.cell('L6').value(fecha_pedido);
-      sheet.cell('D9').value(cliente);
-      sheet.cell('K12').value(`${cantidad_total} PLAYERAS`);
-      sheet.cell('C19').value(tela);
-      sheet.cell('H19').value(modelo);
+      // Limpiar JSON temporal
+      if (fs.existsSync(tempJsonPath)) fs.unlinkSync(tempJsonPath);
 
-      // ─── 3. Escribir tallas (X si cantidad=1, número si >1) ────
-      for (const tallaDetail of tallas as { tipo: string; talla: string; cantidad: number }[]) {
-        const tipoKey = tallaDetail.tipo.toUpperCase();
-        const tallaKey = tallaDetail.talla.toUpperCase();
-
-        const tipoMap = MAPA_TALLAS[tipoKey];
-        if (!tipoMap) {
-          res.status(400).json({ message: `Tipo "${tallaDetail.tipo}" no es válido. Usa: DAMA, CABALLERO o INFANTIL` });
-          return;
-        }
-
-        const cellAddress = tipoMap[tallaKey];
-        if (!cellAddress) {
-          res.status(400).json({ message: `Talla "${tallaDetail.talla}" no es válida para tipo "${tallaDetail.tipo}"` });
-          return;
-        }
-
-        const valorCelda = tallaDetail.cantidad === 1 ? 'X' : tallaDetail.cantidad;
-        sheet.cell(cellAddress).value(valorCelda);
-      }
-
-      // ─── 4. Guardar archivo temporalmente ──────────────────────
-      const clienteSanitizado = cliente.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '');
-      const tempFileName = `${clienteSanitizado}.xlsx`;
-      const tempFilePath = path.join(os.tmpdir(), tempFileName);
-
-      await workbook.toFileAsync(tempFilePath);
-
-      // ─── 5. Subir a Cloudinary (carpeta ordenes_produccion) ────
+      // ─── 4. Subir a Cloudinary (carpeta ordenes_produccion) ────
       let uploadResult;
       try {
-        uploadResult = await cloudinary.uploader.upload(tempFilePath, {
+        uploadResult = await cloudinary.uploader.upload(outputXlsxPath, {
           resource_type: 'raw',
           folder: 'ordenes_produccion',
           public_id: clienteSanitizado,
@@ -175,16 +161,15 @@ const designDocumentController = {
           overwrite: true,
         });
       } catch (uploadError) {
-        // Limpiar archivo temporal en caso de error
-        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        if (fs.existsSync(outputXlsxPath)) fs.unlinkSync(outputXlsxPath);
         res.status(500).json({ message: 'Error al subir a Cloudinary', error: (uploadError as Error).message });
         return;
       }
 
-      // Limpiar archivo temporal
-      if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+      // Limpiar archivo Excel temporal
+      if (fs.existsSync(outputXlsxPath)) fs.unlinkSync(outputXlsxPath);
 
-      // ─── 6. Guardar en la base de datos ────────────────────────
+      // ─── 5. Guardar en la base de datos ────────────────────────
       const document = await DesignDocument.create({
         id_design,
         document_url: uploadResult.secure_url,
