@@ -9,6 +9,9 @@ import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
 
+// En Linux (Render) usar python3, en Windows usar python
+const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
+
 const designDocumentController = {
   // Crear un nuevo documento de diseño
   createDesignDocument: async (req: Request, res: Response) => {
@@ -125,7 +128,7 @@ const designDocumentController = {
       const scriptPath = path.join(process.cwd(), 'scripts', 'generate_xlsx.py');
 
       try {
-        const { stdout, stderr } = await execFileAsync('python', [scriptPath, tempJsonPath, outputXlsxPath]);
+        const { stdout, stderr } = await execFileAsync(PYTHON_CMD, [scriptPath, tempJsonPath, outputXlsxPath]);
 
         if (stderr) {
           console.warn('Python warnings:', stderr);

@@ -50,6 +50,8 @@ const os = __importStar(require("os"));
 const child_process_1 = require("child_process");
 const util_1 = require("util");
 const execFileAsync = (0, util_1.promisify)(child_process_1.execFile);
+// En Linux (Render) usar python3, en Windows usar python
+const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
 const designDocumentController = {
     // Crear un nuevo documento de diseño
     createDesignDocument: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -154,7 +156,7 @@ const designDocumentController = {
             // ─── 3. Ejecutar script Python (openpyxl) ─────────────────
             const scriptPath = path.join(process.cwd(), 'scripts', 'generate_xlsx.py');
             try {
-                const { stdout, stderr } = yield execFileAsync('python', [scriptPath, tempJsonPath, outputXlsxPath]);
+                const { stdout, stderr } = yield execFileAsync(PYTHON_CMD, [scriptPath, tempJsonPath, outputXlsxPath]);
                 if (stderr) {
                     console.warn('Python warnings:', stderr);
                 }
