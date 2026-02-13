@@ -126,6 +126,7 @@ const designDocumentController = {
     generateProductionOrder: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const { id_design, folio, fecha_pedido, cliente, cantidad_total, tela, modelo, tallas, // Array de { tipo: string, talla: string, cantidad: number }
+            listado, // Array de { nombre?: string, numero?: number, talla: string, cantidad: number, genero: string }
              } = req.body;
             // Validaciones básicas
             if (!id_design || !folio || !fecha_pedido || !cliente || !cantidad_total || !tela || !modelo || !tallas) {
@@ -149,6 +150,7 @@ const designDocumentController = {
                 tela,
                 modelo,
                 tallas,
+                listado: listado || [],
             };
             const tempJsonPath = path.join(os.tmpdir(), `order_input_${Date.now()}.json`);
             const outputXlsxPath = path.join(os.tmpdir(), `${clienteSanitizado}.xlsx`);

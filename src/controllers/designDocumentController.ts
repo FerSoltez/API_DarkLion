@@ -91,6 +91,7 @@ const designDocumentController = {
         tela,
         modelo,
         tallas, // Array de { tipo: string, talla: string, cantidad: number }
+        listado, // Array de { nombre?: string, numero?: number, talla: string, cantidad: number, genero: string }
       } = req.body;
 
       // Validaciones básicas
@@ -117,6 +118,7 @@ const designDocumentController = {
         tela,
         modelo,
         tallas,
+        listado: listado || [],
       };
 
       const tempJsonPath = path.join(os.tmpdir(), `order_input_${Date.now()}.json`);
