@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Design } from '../models/Design';
 import { Client } from '../models/Client';
 import { DesignDocument } from '../models/DesignDocument';
+import { Product } from '../models/Product';
 import { sequelize } from '../config/database';
 import { v2 as cloudinary } from 'cloudinary';
 import * as path from 'path';
@@ -96,11 +97,7 @@ const designController = {
         design_file_url,
         status,
         // Datos de la orden de producción
-        folio,
-        fecha_pedido,
-        cantidad_total,
         tela,
-        modelo,
         tallas,
         listado,
       } = req.body;
@@ -110,10 +107,28 @@ const designController = {
         res.status(400).json({ message: 'Faltan campos requeridos: name, email, id_product, design_file_url' });
         return;
       }
-      if (!folio || !fecha_pedido || !cantidad_total || !tela || !modelo || !tallas) {
-        res.status(400).json({ message: 'Faltan campos requeridos: folio, fecha_pedido, cantidad_total, tela, modelo, tallas' });
+      if (!tela || !tallas || !Array.isArray(tallas)) {
+        res.status(400).json({ message: 'Faltan campos requeridos: tela, tallas' });
         return;
       }
+
+      // Obtener el producto para usar su nombre como modelo
+      const product = await Product.findByPk(id_product);
+      if (!product) {
+        res.status(404).json({ message: `Producto con id ${id_product} no encontrado` });
+        return;
+      }
+      const modelo = product.name;
+
+      // Generar folio automático (OP-YYYYMMDD-XXXX)
+      const now = new Date();
+      const folio = `OP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Date.now().toString().slice(-4)}`;
+
+      // Generar fecha_pedido en formato DD/MM/YYYY
+      const fecha_pedido = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+
+      // Calcular cantidad_total como la suma de las cantidades de tallas
+      const cantidad_total = tallas.reduce((sum: number, t: any) => sum + (Number(t.cantidad) || 0), 0);
 
       // ─── 1. Crear cliente ──────────────────────────────────────
       const client = await Client.create({ name, email }, { transaction: t });

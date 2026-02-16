@@ -45,6 +45,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Design_1 = require("../models/Design");
 const Client_1 = require("../models/Client");
 const DesignDocument_1 = require("../models/DesignDocument");
+const Product_1 = require("../models/Product");
 const database_1 = require("../config/database");
 const cloudinary_1 = require("cloudinary");
 const path = __importStar(require("path"));
@@ -137,16 +138,30 @@ const designController = {
             // Datos del diseño
             id_product, design_file_url, status, 
             // Datos de la orden de producción
-            folio, fecha_pedido, cantidad_total, tela, modelo, tallas, listado, } = req.body;
+            tela, tallas, listado, } = req.body;
             // ─── Validaciones ──────────────────────────────────────────
             if (!name || !email || !id_product || !design_file_url) {
                 res.status(400).json({ message: 'Faltan campos requeridos: name, email, id_product, design_file_url' });
                 return;
             }
-            if (!folio || !fecha_pedido || !cantidad_total || !tela || !modelo || !tallas) {
-                res.status(400).json({ message: 'Faltan campos requeridos: folio, fecha_pedido, cantidad_total, tela, modelo, tallas' });
+            if (!tela || !tallas || !Array.isArray(tallas)) {
+                res.status(400).json({ message: 'Faltan campos requeridos: tela, tallas' });
                 return;
             }
+            // Obtener el producto para usar su nombre como modelo
+            const product = yield Product_1.Product.findByPk(id_product);
+            if (!product) {
+                res.status(404).json({ message: `Producto con id ${id_product} no encontrado` });
+                return;
+            }
+            const modelo = product.name;
+            // Generar folio automático (OP-YYYYMMDD-XXXX)
+            const now = new Date();
+            const folio = `OP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Date.now().toString().slice(-4)}`;
+            // Generar fecha_pedido en formato DD/MM/YYYY
+            const fecha_pedido = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+            // Calcular cantidad_total como la suma de las cantidades de tallas
+            const cantidad_total = tallas.reduce((sum, t) => sum + (Number(t.cantidad) || 0), 0);
             // ─── 1. Crear cliente ──────────────────────────────────────
             const client = yield Client_1.Client.create({ name, email }, { transaction: t });
             const clientId = (_a = client.dataValues.id_client) !== null && _a !== void 0 ? _a : client.getDataValue('id_client');
