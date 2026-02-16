@@ -11,6 +11,9 @@ router.post('/designs', designController.createDesign);
 // Crear cliente y diseño en una sola petición (POST)
 router.post('/designs/client-and-design', designController.createClientAndDesign);
 
+// Obtener todos los pedidos para la tabla de gestión (POST)
+router.post('/designs/orders', designController.getAllOrders);
+
 // Obtener todos los diseños (POST según requerimiento)
 // Usamos /designs/all para diferenciar de la creación si se usa la raíz
 router.post('/designs/all', designController.getAllDesigns);

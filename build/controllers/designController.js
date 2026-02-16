@@ -55,6 +55,11 @@ const child_process_1 = require("child_process");
 const util_1 = require("util");
 const execFileAsync = (0, util_1.promisify)(child_process_1.execFile);
 const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
+// Helper para formatear fecha DD/MM/YYYY
+function formatDate(date) {
+    const d = new Date(date);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+}
 const designController = {
     // Crear un nuevo diseño
     createDesign: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -226,6 +231,19 @@ const designController = {
             }, { transaction: t });
             // ─── 6. Confirmar transacción ──────────────────────────────
             yield t.commit();
+            // ─── 7. Emitir evento WebSocket ───────────────────────────
+            const { io } = require('../index');
+            const clientData = client.toJSON();
+            const newOrder = {
+                id_design: designId,
+                name: clientData.name,
+                phone_number: clientData.phone_number || null,
+                email: clientData.email,
+                created_at: formatDate(clientData.created_at || new Date()),
+                status: design.toJSON().status || 'pending',
+                document_url: uploadResult.secure_url,
+            };
+            io.emit('new_order', newOrder);
             res.status(201).json({
                 message: 'Cliente, diseño y orden de producción creados exitosamente',
                 data: {
@@ -247,6 +265,38 @@ const designController = {
                 fs.unlinkSync(tempJsonPath);
             if (outputXlsxPath && fs.existsSync(outputXlsxPath))
                 fs.unlinkSync(outputXlsxPath);
+            res.status(500).json({ error: error.message });
+        }
+    }),
+    // Obtener todos los pedidos para la tabla de gestión
+    getAllOrders: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            const orders = yield Design_1.Design.findAll({
+                attributes: ['id_design', 'id_client', 'status', 'created_at'],
+                order: [['created_at', 'DESC']],
+            });
+            const result = [];
+            for (const design of orders) {
+                const designData = design.toJSON();
+                // Obtener cliente
+                const client = yield Client_1.Client.findByPk(designData.id_client);
+                const clientData = client ? client.toJSON() : {};
+                // Obtener documento
+                const doc = yield DesignDocument_1.DesignDocument.findOne({ where: { id_design: designData.id_design } });
+                const docData = doc ? doc.toJSON() : {};
+                result.push({
+                    id_design: designData.id_design,
+                    name: clientData.name || null,
+                    phone_number: clientData.phone_number || null,
+                    email: clientData.email || null,
+                    created_at: designData.created_at ? formatDate(designData.created_at) : null,
+                    status: designData.status || 'pending',
+                    document_url: docData.document_url || null,
+                });
+            }
+            res.status(200).json(result);
+        }
+        catch (error) {
             res.status(500).json({ error: error.message });
         }
     })

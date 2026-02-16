@@ -14,10 +14,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.10",
     "@types/sequelize": "^4.28.20",
     "cloudinary": "^2.9.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
@@ -27,6 +29,7 @@
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.16.2",
     "sequelize": "^6.37.7",
+    "socket.io": "^4.8.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "xlsx-populate": "^1.21.0"
