@@ -6,17 +6,19 @@ export interface ClientAttributes {
   id_client?: number;
   name: string;
   email: string;
+  phone_number?: string;
   created_at?: Date;
 }
 
 // Interfaz que define los atributos opcionales de un cliente (para la creación)
-export interface ClientCreationAttributes extends Optional<ClientAttributes, 'id_client' | 'created_at'> {}
+export interface ClientCreationAttributes extends Optional<ClientAttributes, 'id_client' | 'phone_number' | 'created_at'> {}
 
 // Clase que representa el modelo de cliente
 export class Client extends Model<ClientAttributes, ClientCreationAttributes> implements ClientAttributes {
   public id_client?: number;
   public name!: string;
   public email!: string;
+  public phone_number?: string;
   public created_at?: Date;
 }
 
@@ -34,6 +36,10 @@ Client.init({
   email: {
     type: DataTypes.STRING(150),
     allowNull: false
+  },
+  phone_number: {
+    type: DataTypes.STRING(20),
+    allowNull: true
   },
   created_at: {
     type: DataTypes.DATE,

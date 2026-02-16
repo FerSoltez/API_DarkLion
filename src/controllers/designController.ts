@@ -92,6 +92,7 @@ const designController = {
         // Datos del cliente
         name,
         email,
+        phone_number,
         // Datos del diseño
         id_product,
         design_file_url,
@@ -131,7 +132,7 @@ const designController = {
       const cantidad_total = tallas.reduce((sum: number, t: any) => sum + (Number(t.cantidad) || 0), 0);
 
       // ─── 1. Crear cliente ──────────────────────────────────────
-      const client = await Client.create({ name, email }, { transaction: t });
+      const client = await Client.create({ name, email, phone_number }, { transaction: t });
       const clientId = (client as any).dataValues.id_client ?? client.getDataValue('id_client');
 
       // ─── 2. Crear diseño ───────────────────────────────────────

@@ -22,6 +22,10 @@ Client.init({
         type: sequelize_1.DataTypes.STRING(150),
         allowNull: false
     },
+    phone_number: {
+        type: sequelize_1.DataTypes.STRING(20),
+        allowNull: true
+    },
     created_at: {
         type: sequelize_1.DataTypes.DATE,
         defaultValue: sequelize_1.DataTypes.NOW,

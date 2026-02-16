@@ -134,7 +134,7 @@ const designController = {
         try {
             const { 
             // Datos del cliente
-            name, email, 
+            name, email, phone_number, 
             // Datos del diseño
             id_product, design_file_url, status, 
             // Datos de la orden de producción
@@ -163,7 +163,7 @@ const designController = {
             // Calcular cantidad_total como la suma de las cantidades de tallas
             const cantidad_total = tallas.reduce((sum, t) => sum + (Number(t.cantidad) || 0), 0);
             // ─── 1. Crear cliente ──────────────────────────────────────
-            const client = yield Client_1.Client.create({ name, email }, { transaction: t });
+            const client = yield Client_1.Client.create({ name, email, phone_number }, { transaction: t });
             const clientId = (_a = client.dataValues.id_client) !== null && _a !== void 0 ? _a : client.getDataValue('id_client');
             // ─── 2. Crear diseño ───────────────────────────────────────
             const design = yield Design_1.Design.create({
