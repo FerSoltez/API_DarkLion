@@ -8,6 +8,9 @@ const router = express.Router();
 // Crear diseño (POST)
 router.post('/designs', designController.createDesign);
 
+// Crear cliente y diseño en una sola petición (POST)
+router.post('/designs/client-and-design', designController.createClientAndDesign);
+
 // Obtener todos los diseños (POST según requerimiento)
 // Usamos /designs/all para diferenciar de la creación si se usa la raíz
 router.post('/designs/all', designController.getAllDesigns);
