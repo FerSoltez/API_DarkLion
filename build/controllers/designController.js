@@ -114,19 +114,32 @@ const designController = {
             res.status(500).json({ error: error.message });
         }
     }),
-    // Eliminar un diseño
+    // Eliminar un diseño y su cliente asociado
     deleteDesign: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const t = yield database_1.sequelize.transaction();
         try {
             const id = Number(req.params.id);
-            const deleted = yield Design_1.Design.destroy({ where: { id_design: id } });
-            if (deleted) {
-                res.status(200).json({ message: 'Diseño eliminado exitosamente' });
-            }
-            else {
+            const design = yield Design_1.Design.findByPk(id);
+            if (!design) {
+                yield t.rollback();
                 res.status(404).json({ message: 'Diseño no encontrado' });
+                return;
             }
+            const designData = design.toJSON();
+            const clientId = designData.id_client;
+            // Eliminar documentos asociados
+            yield DesignDocument_1.DesignDocument.destroy({ where: { id_design: id }, transaction: t });
+            // Eliminar diseño
+            yield Design_1.Design.destroy({ where: { id_design: id }, transaction: t });
+            // Eliminar cliente asociado
+            if (clientId) {
+                yield Client_1.Client.destroy({ where: { id_client: clientId }, transaction: t });
+            }
+            yield t.commit();
+            res.status(200).json({ message: 'Diseño, cliente y documentos asociados eliminados exitosamente' });
         }
         catch (error) {
+            yield t.rollback();
             res.status(500).json({ error: error.message });
         }
     }),

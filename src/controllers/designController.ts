@@ -72,17 +72,36 @@ const designController = {
     }
   },
 
-  // Eliminar un diseño
+  // Eliminar un diseño y su cliente asociado
   deleteDesign: async (req: Request, res: Response) => {
+    const t = await sequelize.transaction();
     try {
       const id = Number(req.params.id);
-      const deleted = await Design.destroy({ where: { id_design: id } });
-      if (deleted) {
-        res.status(200).json({ message: 'Diseño eliminado exitosamente' });
-      } else {
+      const design = await Design.findByPk(id);
+      if (!design) {
+        await t.rollback();
         res.status(404).json({ message: 'Diseño no encontrado' });
+        return;
       }
+
+      const designData = design.toJSON() as any;
+      const clientId = designData.id_client;
+
+      // Eliminar documentos asociados
+      await DesignDocument.destroy({ where: { id_design: id }, transaction: t });
+
+      // Eliminar diseño
+      await Design.destroy({ where: { id_design: id }, transaction: t });
+
+      // Eliminar cliente asociado
+      if (clientId) {
+        await Client.destroy({ where: { id_client: clientId }, transaction: t });
+      }
+
+      await t.commit();
+      res.status(200).json({ message: 'Diseño, cliente y documentos asociados eliminados exitosamente' });
     } catch (error) {
+      await t.rollback();
       res.status(500).json({ error: (error as Error).message });
     }
   },
