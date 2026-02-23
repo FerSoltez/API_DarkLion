@@ -6,7 +6,7 @@ export interface DesignAttributes {
   id_design?: number;
   id_client: number;
   id_product: number;
-  status?: 'pending' | 'approved' | 'in_production' | 'completed';
+  status?: 'En revision' | 'Pendiente' | 'Aprobado';
   created_at?: Date;
   design_file_url: string;
 }
@@ -19,7 +19,7 @@ export class Design extends Model<DesignAttributes, DesignCreationAttributes> im
   public id_design?: number;
   public id_client!: number;
   public id_product!: number;
-  public status?: 'pending' | 'approved' | 'in_production' | 'completed';
+  public status?: 'En revision' | 'Pendiente' | 'Aprobado';
   public created_at?: Date;
   public design_file_url!: string;
 }
@@ -40,9 +40,9 @@ Design.init({
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('pending', 'approved', 'in_production', 'completed'),
+    type: DataTypes.ENUM('En revision', 'Pendiente', 'Aprobado'),
     allowNull: true,
-    defaultValue: 'pending'
+    defaultValue: 'Pendiente'
   },
   created_at: {
     type: DataTypes.DATE,

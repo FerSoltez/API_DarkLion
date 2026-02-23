@@ -188,7 +188,7 @@ const designController = {
                 id_client: clientId,
                 id_product,
                 design_file_url,
-                status: status || 'pending',
+                status: status || 'Pendiente',
             }, { transaction: t });
             const designId = (_b = design.dataValues.id_design) !== null && _b !== void 0 ? _b : design.getDataValue('id_design');
             // ─── 3. Generar archivo Excel ──────────────────────────────
@@ -253,7 +253,7 @@ const designController = {
                 phone_number: clientData.phone_number || null,
                 email: clientData.email,
                 created_at: formatDate(clientData.created_at || new Date()),
-                status: design.toJSON().status || 'pending',
+                status: design.toJSON().status || 'Pendiente',
                 document_url: uploadResult.secure_url,
             };
             io.emit('new_order', newOrder);
@@ -303,7 +303,7 @@ const designController = {
                     phone_number: clientData.phone_number || null,
                     email: clientData.email || null,
                     created_at: designData.created_at ? formatDate(designData.created_at) : null,
-                    status: designData.status || 'pending',
+                    status: designData.status || 'Pendiente',
                     document_url: docData.document_url || null,
                 });
             }

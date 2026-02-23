@@ -23,9 +23,9 @@ Design.init({
         allowNull: false
     },
     status: {
-        type: sequelize_1.DataTypes.ENUM('pending', 'approved', 'in_production', 'completed'),
+        type: sequelize_1.DataTypes.ENUM('En revision', 'Pendiente', 'Aprobado'),
         allowNull: true,
-        defaultValue: 'pending'
+        defaultValue: 'Pendiente'
     },
     created_at: {
         type: sequelize_1.DataTypes.DATE,
