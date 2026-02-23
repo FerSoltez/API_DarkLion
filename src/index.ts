@@ -1,4 +1,5 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -25,6 +26,9 @@ const io = new SocketIOServer(server, {
 
 // Exportar io para usarlo en controllers
 export { io };
+
+// Middleware CORS
+app.use(cors());
 
 // Middleware para procesar datos en formato JSON
 app.use(express.json());

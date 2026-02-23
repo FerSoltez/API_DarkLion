@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.io = void 0;
 const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
@@ -26,6 +27,8 @@ const io = new socket_io_1.Server(server, {
     },
 });
 exports.io = io;
+// Middleware CORS
+app.use((0, cors_1.default)());
 // Middleware para procesar datos en formato JSON
 app.use(express_1.default.json());
 // Rutas
