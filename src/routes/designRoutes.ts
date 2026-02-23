@@ -14,6 +14,9 @@ router.post('/designs/client-and-design', designController.createClientAndDesign
 // Obtener todos los pedidos para la tabla de gestión (GET)
 router.get('/designs/orders', designController.getAllOrders);
 
+// Actualizar datos de un pedido (PATCH)
+router.patch('/designs/orders/:id', designController.updateOrder);
+
 // Obtener todos los diseños (POST según requerimiento)
 // Usamos /designs/all para diferenciar de la creación si se usa la raíz
 router.post('/designs/all', designController.getAllDesigns);

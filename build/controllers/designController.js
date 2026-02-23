@@ -254,6 +254,7 @@ const designController = {
                 email: clientData.email,
                 created_at: formatDate(clientData.created_at || new Date()),
                 status: design.toJSON().status || 'Pendiente',
+                design_file_url: design_file_url || null,
                 document_url: uploadResult.secure_url,
             };
             io.emit('new_order', newOrder);
@@ -281,11 +282,75 @@ const designController = {
             res.status(500).json({ error: error.message });
         }
     }),
+    // Actualizar datos de un pedido (cliente, diseño, documento)
+    updateOrder: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+        const t = yield database_1.sequelize.transaction();
+        try {
+            const id = Number(req.params.id);
+            const { name, email, phone_number, status, document_url } = req.body;
+            // Buscar el diseño
+            const design = yield Design_1.Design.findByPk(id);
+            if (!design) {
+                yield t.rollback();
+                res.status(404).json({ message: 'Pedido no encontrado' });
+                return;
+            }
+            const designData = design.toJSON();
+            // Actualizar campos del diseño (status)
+            if (status !== undefined) {
+                yield Design_1.Design.update({ status }, { where: { id_design: id }, transaction: t });
+            }
+            // Actualizar campos del cliente (name, email, phone_number)
+            const clientFields = {};
+            if (name !== undefined)
+                clientFields.name = name;
+            if (email !== undefined)
+                clientFields.email = email;
+            if (phone_number !== undefined)
+                clientFields.phone_number = phone_number;
+            if (Object.keys(clientFields).length > 0 && designData.id_client) {
+                yield Client_1.Client.update(clientFields, { where: { id_client: designData.id_client }, transaction: t });
+            }
+            // Actualizar documento (document_url)
+            if (document_url !== undefined) {
+                const doc = yield DesignDocument_1.DesignDocument.findOne({ where: { id_design: id } });
+                if (doc) {
+                    yield DesignDocument_1.DesignDocument.update({ document_url }, { where: { id_design: id }, transaction: t });
+                }
+            }
+            yield t.commit();
+            // Obtener datos actualizados para la respuesta
+            const updatedDesign = yield Design_1.Design.findByPk(id);
+            const updatedDesignData = updatedDesign.toJSON();
+            const client = yield Client_1.Client.findByPk(updatedDesignData.id_client);
+            const clientData = client ? client.toJSON() : {};
+            const doc = yield DesignDocument_1.DesignDocument.findOne({ where: { id_design: id } });
+            const docData = doc ? doc.toJSON() : {};
+            const updatedOrder = {
+                id_design: updatedDesignData.id_design,
+                name: clientData.name || null,
+                phone_number: clientData.phone_number || null,
+                email: clientData.email || null,
+                created_at: updatedDesignData.created_at ? formatDate(updatedDesignData.created_at) : null,
+                status: updatedDesignData.status || 'Pendiente',
+                design_file_url: updatedDesignData.design_file_url || null,
+                document_url: docData.document_url || null,
+            };
+            // Emitir evento WebSocket
+            const { io } = require('../index');
+            io.emit('update_order', updatedOrder);
+            res.status(200).json(updatedOrder);
+        }
+        catch (error) {
+            yield t.rollback();
+            res.status(500).json({ error: error.message });
+        }
+    }),
     // Obtener todos los pedidos para la tabla de gestión
     getAllOrders: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const orders = yield Design_1.Design.findAll({
-                attributes: ['id_design', 'id_client', 'status', 'created_at'],
+                attributes: ['id_design', 'id_client', 'status', 'created_at', 'design_file_url'],
                 order: [['created_at', 'DESC']],
             });
             const result = [];
@@ -304,6 +369,7 @@ const designController = {
                     email: clientData.email || null,
                     created_at: designData.created_at ? formatDate(designData.created_at) : null,
                     status: designData.status || 'Pendiente',
+                    design_file_url: designData.design_file_url || null,
                     document_url: docData.document_url || null,
                 });
             }

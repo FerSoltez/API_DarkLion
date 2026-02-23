@@ -240,6 +240,7 @@ const designController = {
         email: clientData.email,
         created_at: formatDate(clientData.created_at || new Date()),
         status: (design.toJSON() as any).status || 'Pendiente',
+        design_file_url: design_file_url || null,
         document_url: uploadResult.secure_url,
       };
       io.emit('new_order', newOrder);
@@ -266,11 +267,83 @@ const designController = {
     }
   },
 
+  // Actualizar datos de un pedido (cliente, diseño, documento)
+  updateOrder: async (req: Request, res: Response) => {
+    const t = await sequelize.transaction();
+    try {
+      const id = Number(req.params.id);
+      const { name, email, phone_number, status, document_url } = req.body;
+
+      // Buscar el diseño
+      const design = await Design.findByPk(id);
+      if (!design) {
+        await t.rollback();
+        res.status(404).json({ message: 'Pedido no encontrado' });
+        return;
+      }
+
+      const designData = design.toJSON() as any;
+
+      // Actualizar campos del diseño (status)
+      if (status !== undefined) {
+        await Design.update({ status }, { where: { id_design: id }, transaction: t });
+      }
+
+      // Actualizar campos del cliente (name, email, phone_number)
+      const clientFields: any = {};
+      if (name !== undefined) clientFields.name = name;
+      if (email !== undefined) clientFields.email = email;
+      if (phone_number !== undefined) clientFields.phone_number = phone_number;
+
+      if (Object.keys(clientFields).length > 0 && designData.id_client) {
+        await Client.update(clientFields, { where: { id_client: designData.id_client }, transaction: t });
+      }
+
+      // Actualizar documento (document_url)
+      if (document_url !== undefined) {
+        const doc = await DesignDocument.findOne({ where: { id_design: id } });
+        if (doc) {
+          await DesignDocument.update({ document_url }, { where: { id_design: id }, transaction: t });
+        }
+      }
+
+      await t.commit();
+
+      // Obtener datos actualizados para la respuesta
+      const updatedDesign = await Design.findByPk(id);
+      const updatedDesignData = updatedDesign!.toJSON() as any;
+      const client = await Client.findByPk(updatedDesignData.id_client);
+      const clientData = client ? client.toJSON() as any : {};
+      const doc = await DesignDocument.findOne({ where: { id_design: id } });
+      const docData = doc ? doc.toJSON() as any : {};
+
+      const updatedOrder = {
+        id_design: updatedDesignData.id_design,
+        name: clientData.name || null,
+        phone_number: clientData.phone_number || null,
+        email: clientData.email || null,
+        created_at: updatedDesignData.created_at ? formatDate(updatedDesignData.created_at) : null,
+        status: updatedDesignData.status || 'Pendiente',
+        design_file_url: updatedDesignData.design_file_url || null,
+        document_url: docData.document_url || null,
+      };
+
+      // Emitir evento WebSocket
+      const { io } = require('../index');
+      io.emit('update_order', updatedOrder);
+
+      res.status(200).json(updatedOrder);
+    } catch (error) {
+      await t.rollback();
+      res.status(500).json({ error: (error as Error).message });
+    }
+  },
+
   // Obtener todos los pedidos para la tabla de gestión
   getAllOrders: async (req: Request, res: Response) => {
     try {
       const orders = await Design.findAll({
-        attributes: ['id_design', 'id_client', 'status', 'created_at'],
+        attributes: ['id_design', 'id_client', 'status', 'created_at', 'design_file_url'],
         order: [['created_at', 'DESC']],
       });
 
@@ -293,6 +366,7 @@ const designController = {
           email: clientData.email || null,
           created_at: designData.created_at ? formatDate(designData.created_at) : null,
           status: designData.status || 'Pendiente',
+          design_file_url: designData.design_file_url || null,
           document_url: docData.document_url || null,
         });
       }
