@@ -85,6 +85,10 @@ const designController = {
     getDesignById: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const id = Number(req.params.id);
+            if (isNaN(id)) {
+                res.status(400).json({ message: 'ID inválido' });
+                return;
+            }
             const design = yield Design_1.Design.findByPk(id);
             if (design) {
                 res.status(200).json(design);
@@ -101,6 +105,10 @@ const designController = {
     updateDesign: (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             const id = Number(req.params.id);
+            if (isNaN(id)) {
+                res.status(400).json({ message: 'ID inválido' });
+                return;
+            }
             const [updated] = yield Design_1.Design.update(req.body, { where: { id_design: id } });
             if (updated) {
                 const updatedDesign = yield Design_1.Design.findByPk(id);
@@ -119,6 +127,11 @@ const designController = {
         const t = yield database_1.sequelize.transaction();
         try {
             const id = Number(req.params.id);
+            if (isNaN(id)) {
+                yield t.rollback();
+                res.status(400).json({ message: 'ID inválido' });
+                return;
+            }
             const design = yield Design_1.Design.findByPk(id);
             if (!design) {
                 yield t.rollback();
@@ -287,6 +300,11 @@ const designController = {
         const t = yield database_1.sequelize.transaction();
         try {
             const id = Number(req.params.id);
+            if (isNaN(id)) {
+                yield t.rollback();
+                res.status(400).json({ message: 'ID inválido' });
+                return;
+            }
             const { name, email, phone_number, status, document_url } = req.body;
             // Buscar el diseño
             const design = yield Design_1.Design.findByPk(id);

@@ -45,6 +45,10 @@ const designController = {
   getDesignById: async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ message: 'ID inválido' });
+        return;
+      }
       const design = await Design.findByPk(id);
       if (design) {
         res.status(200).json(design);
@@ -60,6 +64,10 @@ const designController = {
   updateDesign: async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
+      if (isNaN(id)) {
+        res.status(400).json({ message: 'ID inválido' });
+        return;
+      }
       const [updated] = await Design.update(req.body, { where: { id_design: id } });
       if (updated) {
         const updatedDesign = await Design.findByPk(id);
@@ -77,6 +85,11 @@ const designController = {
     const t = await sequelize.transaction();
     try {
       const id = Number(req.params.id);
+      if (isNaN(id)) {
+        await t.rollback();
+        res.status(400).json({ message: 'ID inválido' });
+        return;
+      }
       const design = await Design.findByPk(id);
       if (!design) {
         await t.rollback();
@@ -272,6 +285,11 @@ const designController = {
     const t = await sequelize.transaction();
     try {
       const id = Number(req.params.id);
+      if (isNaN(id)) {
+        await t.rollback();
+        res.status(400).json({ message: 'ID inválido' });
+        return;
+      }
       const { name, email, phone_number, status, document_url } = req.body;
 
       // Buscar el diseño
