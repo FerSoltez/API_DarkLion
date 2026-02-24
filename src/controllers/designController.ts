@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { sendPushToAll } from './pushController';
 
 const execFileAsync = promisify(execFile);
 const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
@@ -257,6 +258,13 @@ const designController = {
         document_url: uploadResult.secure_url,
       };
       io.emit('new_order', newOrder);
+
+      // ─── 8. Enviar Push Notification a todos los suscriptores ─
+      sendPushToAll(
+        'Nuevo Pedido - Dark Lion',
+        `${name} ha realizado un nuevo pedido`,
+        newOrder
+      ).catch((err) => console.error('Error enviando push:', err));
 
       res.status(201).json({
         message: 'Cliente, diseño y orden de producción creados exitosamente',

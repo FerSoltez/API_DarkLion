@@ -13,6 +13,7 @@ const clientRoutes_1 = __importDefault(require("./routes/clientRoutes"));
 const designDocumentRoutes_1 = __importDefault(require("./routes/designDocumentRoutes"));
 const designRoutes_1 = __importDefault(require("./routes/designRoutes"));
 const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
+const pushRoutes_1 = __importDefault(require("./routes/pushRoutes"));
 require("./config/cloudinaryConfig");
 // Cargar variables de entorno desde el archivo .env
 dotenv_1.default.config();
@@ -36,6 +37,7 @@ app.use('/api', clientRoutes_1.default);
 app.use('/api', designDocumentRoutes_1.default);
 app.use('/api', designRoutes_1.default);
 app.use('/api', productRoutes_1.default);
+app.use('/api', pushRoutes_1.default);
 // Ruta de prueba
 app.get('/', (req, res, next) => {
     res.send('¡API en funcionamiento!');

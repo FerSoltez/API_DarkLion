@@ -7,6 +7,7 @@ import clientRoutes from './routes/clientRoutes';
 import designDocumentRoutes from './routes/designDocumentRoutes';
 import designRoutes from './routes/designRoutes';
 import productRoutes from './routes/productRoutes';
+import pushRoutes from './routes/pushRoutes';
 import './config/cloudinaryConfig';
 
 // Cargar variables de entorno desde el archivo .env
@@ -38,6 +39,7 @@ app.use('/api', clientRoutes);
 app.use('/api', designDocumentRoutes);
 app.use('/api', designRoutes);
 app.use('/api', productRoutes);
+app.use('/api', pushRoutes);
 
 // Ruta de prueba
 app.get('/', (req: Request, res: Response, next: NextFunction) => {

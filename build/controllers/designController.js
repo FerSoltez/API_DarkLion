@@ -53,6 +53,7 @@ const fs = __importStar(require("fs"));
 const os = __importStar(require("os"));
 const child_process_1 = require("child_process");
 const util_1 = require("util");
+const pushController_1 = require("./pushController");
 const execFileAsync = (0, util_1.promisify)(child_process_1.execFile);
 const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
 // Helper para formatear fecha DD/MM/YYYY
@@ -271,6 +272,8 @@ const designController = {
                 document_url: uploadResult.secure_url,
             };
             io.emit('new_order', newOrder);
+            // ─── 8. Enviar Push Notification a todos los suscriptores ─
+            (0, pushController_1.sendPushToAll)('Nuevo Pedido - Dark Lion', `${name} ha realizado un nuevo pedido`, newOrder).catch((err) => console.error('Error enviando push:', err));
             res.status(201).json({
                 message: 'Cliente, diseño y orden de producción creados exitosamente',
                 data: {
