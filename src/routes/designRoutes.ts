@@ -1,9 +1,10 @@
 import express from 'express';
 import designController from '../controllers/designController';
+import { requireAuth, requireAdmin } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Rutas para diseños
+// ─── Rutas públicas ──────────────────────────────────────────
 
 // Crear diseño (POST)
 router.post('/designs', designController.createDesign);
@@ -11,23 +12,24 @@ router.post('/designs', designController.createDesign);
 // Crear cliente y diseño en una sola petición (POST)
 router.post('/designs/client-and-design', designController.createClientAndDesign);
 
+// ─── Rutas protegidas (requieren admin) ──────────────────────
+
 // Obtener todos los pedidos para la tabla de gestión (GET)
-router.get('/designs/orders', designController.getAllOrders);
+router.get('/designs/orders', requireAuth, requireAdmin, designController.getAllOrders);
 
 // Actualizar datos de un pedido (PATCH)
-router.patch('/designs/orders/:id', designController.updateOrder);
+router.patch('/designs/orders/:id', requireAuth, requireAdmin, designController.updateOrder);
 
 // Obtener todos los diseños (POST según requerimiento)
-// Usamos /designs/all para diferenciar de la creación si se usa la raíz
-router.post('/designs/all', designController.getAllDesigns);
+router.post('/designs/all', requireAuth, requireAdmin, designController.getAllDesigns);
 
 // Obtener un diseño por ID (POST según requerimiento)
-router.post('/designs/:id', designController.getDesignById);
+router.post('/designs/:id', requireAuth, requireAdmin, designController.getDesignById);
 
 // Actualizar un diseño (PATCH)
-router.patch('/designs/:id', designController.updateDesign);
+router.patch('/designs/:id', requireAuth, requireAdmin, designController.updateDesign);
 
 // Eliminar un diseño (DELETE)
-router.delete('/designs/:id', designController.deleteDesign);
+router.delete('/designs/:id', requireAuth, requireAdmin, designController.deleteDesign);
 
 export default router;

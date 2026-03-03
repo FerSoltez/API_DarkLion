@@ -18,11 +18,13 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.10",
     "@types/sequelize": "^4.28.20",
+    "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "jszip": "^3.10.1",
     "mariadb": "^3.4.5",
     "multer": "^2.0.2",
@@ -36,7 +38,9 @@
     "xlsx-populate": "^1.21.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/exceljs": "^0.5.3",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/web-push": "^3.6.4",
     "adm-zip": "^0.5.16",
