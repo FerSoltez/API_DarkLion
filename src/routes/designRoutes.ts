@@ -1,16 +1,18 @@
 import express from 'express';
+import multer from 'multer';
 import designController from '../controllers/designController';
 import { requireAuth, requireAdmin } from '../middleware/authMiddleware';
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ─── Rutas públicas ──────────────────────────────────────────
 
 // Crear diseño (POST)
 router.post('/designs', designController.createDesign);
 
-// Crear cliente y diseño en una sola petición (POST)
-router.post('/designs/client-and-design', designController.createClientAndDesign);
+// Crear cliente y diseño en una sola petición (POST) - recibe imagen como archivo
+router.post('/designs/client-and-design', upload.single('image'), designController.createClientAndDesign);
 
 // ─── Rutas protegidas (requieren admin) ──────────────────────
 

@@ -4,14 +4,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const multer_1 = __importDefault(require("multer"));
 const designController_1 = __importDefault(require("../controllers/designController"));
 const authMiddleware_1 = require("../middleware/authMiddleware");
 const router = express_1.default.Router();
+const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage() });
 // ─── Rutas públicas ──────────────────────────────────────────
 // Crear diseño (POST)
 router.post('/designs', designController_1.default.createDesign);
-// Crear cliente y diseño en una sola petición (POST)
-router.post('/designs/client-and-design', designController_1.default.createClientAndDesign);
+// Crear cliente y diseño en una sola petición (POST) - recibe imagen como archivo
+router.post('/designs/client-and-design', upload.single('image'), designController_1.default.createClientAndDesign);
 // ─── Rutas protegidas (requieren admin) ──────────────────────
 // Obtener todos los pedidos para la tabla de gestión (GET)
 router.get('/designs/orders', authMiddleware_1.requireAuth, authMiddleware_1.requireAdmin, designController_1.default.getAllOrders);

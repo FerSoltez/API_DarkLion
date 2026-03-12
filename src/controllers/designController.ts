@@ -21,6 +21,34 @@ function formatDate(date: Date): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
+// Helper para subir un buffer a Cloudinary
+function uploadBufferToCloudinary(buffer: Buffer, options: any): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) reject(error);
+      else resolve(result);
+    });
+    stream.end(buffer);
+  });
+}
+
+// Helper para extraer public_id y resource_type de una URL de Cloudinary
+function extractCloudinaryInfo(url: string): { publicId: string; resourceType: string } | null {
+  try {
+    const match = url.match(/\/(image|raw|video)\/upload\/v\d+\/(.+)$/);
+    if (!match) return null;
+    const resourceType = match[1];
+    let publicId = match[2];
+    // Para imágenes, quitar extensión; para raw, conservarla
+    if (resourceType === 'image') {
+      publicId = publicId.replace(/\.\w+$/, '');
+    }
+    return { publicId, resourceType };
+  } catch {
+    return null;
+  }
+}
+
 const designController = {
   // Crear un nuevo diseño
   createDesign: async (req: Request, res: Response) => {
@@ -101,6 +129,29 @@ const designController = {
       const designData = design.toJSON() as any;
       const clientId = designData.id_client;
 
+      // ─── Eliminar archivos de Cloudinary ───────────────────────
+      // Eliminar imagen del diseño
+      if (designData.design_file_url) {
+        const imgInfo = extractCloudinaryInfo(designData.design_file_url);
+        if (imgInfo) {
+          await cloudinary.uploader.destroy(imgInfo.publicId, { resource_type: imgInfo.resourceType })
+            .catch((err: Error) => console.warn('Error eliminando imagen de Cloudinary:', err.message));
+        }
+      }
+
+      // Eliminar documento(s) de Cloudinary
+      const docs = await DesignDocument.findAll({ where: { id_design: id } });
+      for (const doc of docs) {
+        const docData = doc.toJSON() as any;
+        if (docData.document_url) {
+          const docInfo = extractCloudinaryInfo(docData.document_url);
+          if (docInfo) {
+            await cloudinary.uploader.destroy(docInfo.publicId, { resource_type: docInfo.resourceType })
+              .catch((err: Error) => console.warn('Error eliminando documento de Cloudinary:', err.message));
+          }
+        }
+      }
+
       // Eliminar documentos asociados
       await DesignDocument.destroy({ where: { id_design: id }, transaction: t });
 
@@ -113,7 +164,7 @@ const designController = {
       }
 
       await t.commit();
-      res.status(200).json({ message: 'Diseño, cliente y documentos asociados eliminados exitosamente' });
+      res.status(200).json({ message: 'Diseño, cliente, documentos y archivos de Cloudinary eliminados exitosamente' });
     } catch (error) {
       await t.rollback();
       res.status(500).json({ error: (error as Error).message });
@@ -125,26 +176,25 @@ const designController = {
     const t = await sequelize.transaction();
     let tempJsonPath = '';
     let outputXlsxPath = '';
+    let imagePublicId = '';
 
     try {
-      const {
-        // Datos del cliente
-        name,
-        email,
-        phone_number,
-        // Datos del diseño
-        id_product,
-        design_file_url,
-        status,
-        // Datos de la orden de producción
-        tela,
-        tallas,
-        listado,
-      } = req.body;
+      const { name, email, phone_number, id_product, status, tela } = req.body;
+
+      // Parsear arrays que vienen como JSON string en multipart form-data
+      const tallas = typeof req.body.tallas === 'string' ? JSON.parse(req.body.tallas) : req.body.tallas;
+      const listado = typeof req.body.listado === 'string' ? JSON.parse(req.body.listado) : (req.body.listado || []);
+
+      // Obtener archivo de imagen subido por multer
+      const file = (req as any).file;
 
       // ─── Validaciones ──────────────────────────────────────────
-      if (!name || !email || !id_product || !design_file_url) {
-        res.status(400).json({ message: 'Faltan campos requeridos: name, email, id_product, design_file_url' });
+      if (!file) {
+        res.status(400).json({ message: 'Se requiere un archivo de imagen (campo "image")' });
+        return;
+      }
+      if (!name || !email || !id_product) {
+        res.status(400).json({ message: 'Faltan campos requeridos: name, email, id_product' });
         return;
       }
       if (!tela || !tallas || !Array.isArray(tallas)) {
@@ -174,7 +224,17 @@ const designController = {
       const client = await Client.create({ name, email, phone_number }, { transaction: t });
       const clientId = (client as any).dataValues.id_client ?? client.getDataValue('id_client');
 
-      // ─── 2. Crear diseño ───────────────────────────────────────
+      // ─── 2. Subir imagen a Cloudinary ──────────────────────────
+      const clienteSanitizado = name.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '');
+      const imageResult = await uploadBufferToCloudinary(file.buffer, {
+        folder: 'imagenes',
+        resource_type: 'image',
+        public_id: `${clienteSanitizado}_${Date.now()}`,
+      });
+      const design_file_url = imageResult.secure_url;
+      imagePublicId = imageResult.public_id;
+
+      // ─── 3. Crear diseño ───────────────────────────────────────
       const design = await Design.create({
         id_client: clientId,
         id_product,
@@ -183,15 +243,13 @@ const designController = {
       }, { transaction: t });
       const designId = (design as any).dataValues.id_design ?? design.getDataValue('id_design');
 
-      // ─── 3. Generar archivo Excel ──────────────────────────────
+      // ─── 4. Generar archivo Excel ──────────────────────────────
       const templatePath = path.join(process.cwd(), 'templates', 'Plantilla Excel.xlsx');
       if (!fs.existsSync(templatePath)) {
         await t.rollback();
         res.status(404).json({ message: 'La plantilla "Plantilla Excel.xlsx" no fue encontrada en /templates' });
         return;
       }
-
-      const clienteSanitizado = name.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '');
       const inputData = {
         template_path: templatePath,
         folio,
@@ -222,7 +280,7 @@ const designController = {
       if (fs.existsSync(tempJsonPath)) fs.unlinkSync(tempJsonPath);
       tempJsonPath = '';
 
-      // ─── 4. Subir a Cloudinary ─────────────────────────────────
+      // ─── 5. Subir Excel a Cloudinary ────────────────────────────
       const uploadResult = await cloudinary.uploader.upload(outputXlsxPath, {
         resource_type: 'raw',
         folder: 'ordenes_produccion',
@@ -235,16 +293,16 @@ const designController = {
       if (fs.existsSync(outputXlsxPath)) fs.unlinkSync(outputXlsxPath);
       outputXlsxPath = '';
 
-      // ─── 5. Guardar documento en BD ────────────────────────────
+      // ─── 6. Guardar documento en BD ────────────────────────────
       const document = await DesignDocument.create({
         id_design: designId,
         document_url: uploadResult.secure_url,
       }, { transaction: t });
 
-      // ─── 6. Confirmar transacción ──────────────────────────────
+      // ─── 7. Confirmar transacción ──────────────────────────────
       await t.commit();
 
-      // ─── 7. Emitir evento WebSocket ───────────────────────────
+      // ─── 8. Emitir evento WebSocket ───────────────────────────
       const { io } = require('../index');
       const clientData = client.toJSON() as any;
       const newOrder = {
@@ -259,7 +317,7 @@ const designController = {
       };
       io.emit('new_order', newOrder);
 
-      // ─── 8. Enviar Push Notification a todos los suscriptores ─
+      // ─── 9. Enviar Push Notification a todos los suscriptores ─
       sendPushToAll(
         'Nuevo Pedido - Dark Lion',
         `${name} ha realizado un nuevo pedido`,
@@ -284,6 +342,11 @@ const designController = {
       // Limpiar temporales en caso de error
       if (tempJsonPath && fs.existsSync(tempJsonPath)) fs.unlinkSync(tempJsonPath);
       if (outputXlsxPath && fs.existsSync(outputXlsxPath)) fs.unlinkSync(outputXlsxPath);
+      // Limpiar imagen subida a Cloudinary si hubo error
+      if (imagePublicId) {
+        cloudinary.uploader.destroy(imagePublicId, { resource_type: 'image' })
+          .catch((err: Error) => console.warn('Error limpiando imagen de Cloudinary:', err.message));
+      }
       res.status(500).json({ error: (error as Error).message });
     }
   },
