@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Diseño - Dark Lion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            color: #333;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        /* HEADER - Diseño Formal Moderno */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 4px solid #6122A9;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -100px;
+            width: 200px;
+            height: 200px;
+            background: rgba(97, 34, 169, 0.1);
+            border-radius: 50%;
+        }
+        
+        .logo-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo-section img {
+            max-width: 250px;
+            height: auto;
+            filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
+        }
+        
+        .header h1 {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 36px;
+            color: white;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            font-family: 'Arboria', 'Georgia', serif;
+            font-size: 14px;
+            color: #6122A9;
+            margin-top: 8px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* MAIN CONTENT */
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 20px;
+            color: #1a1a2e;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            font-weight: 600;
+        }
+        
+        .greeting strong {
+            color: #6122A9;
+        }
+        
+        /* INTRO TEXT */
+        .intro-text {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        
+        /* ORDER DETAILS BOX */
+        .order-details {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e8eaed 100%);
+            border-left: 5px solid #6122A9;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .order-details-title {
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 14px;
+            color: #1a1a2e;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #d0d0d0;
+            font-size: 13px;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #2d2d44;
+        }
+        
+        .detail-value {
+            color: #6122A9;
+            font-weight: 600;
+            text-align: right;
+        }
+        
+        /* MESSAGE */
+        .message {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #555;
+            margin: 30px 0;
+            text-align: center;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-top: 2px solid #6122A9;
+        }
+        
+        .message strong {
+            color: #1a1a2e;
+        }
+        
+        /* FOOTER */
+        .footer {
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+            color: #bbb;
+            text-align: center;
+            padding: 30px 20px;
+            font-size: 12px;
+            border-top: 3px solid #6122A9;
+        }
+        
+        .footer p {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+        
+        .footer strong {
+            color: #6122A9;
+        }
+        
+        .footer a {
+            color: #6122A9;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 600px) {
+            .email-container {
+                border-radius: 0;
+            }
+            
+            .header {
+                padding: 30px 15px;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+                letter-spacing: 1px;
+            }
+            
+            .content {
+                padding: 25px 15px;
+            }
+            
+            .greeting {
+                font-size: 16px;
+            }
+            
+            .order-details {
+                padding: 15px;
+            }
+            
+            .detail-row {
+                flex-direction: column;
+                padding: 10px 0;
+            }
+            
+            .detail-label {
+                display: block;
+                margin-bottom: 5px;
+            }
+            
+            .detail-value {
+                display: block;
+                text-align: left;
+            }
+            
+            .btn {
+                padding: 12px 30px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        
+        <!-- HEADER SECTION -->
+        <div class="header">
+            <div class="logo-section">
+                <img src="cid:logo" alt="Dark Lion Logo" style="max-width: 250px;">
+            </div>
+        </div>
+        
+        <!-- MAIN CONTENT -->
+        <div class="content">
+            
+            <!-- GREETING -->
+            <div class="greeting">
+                ¡Hola <strong>{{ clientName }}</strong>! 👋
+            </div>
+            
+            <!-- INTRO TEXT -->
+            <p class="intro-text">
+                Nos complace confirmar que hemos recibido exitosamente tu diseño y generado tu orden de producción de manera inmediata. 
+                Encontrarás todos los detalles de tu pedido a continuación.
+            </p>
+            
+            <!-- ORDER DETAILS -->
+            <div class="order-details">
+                <div class="order-details-title">📋 Detalles de tu Pedido</div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Folio de Orden:</span>
+                    <span class="detail-value">{{ folio }}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">ID Diseño:</span>
+                    <span class="detail-value">{{ designId }}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Producto:</span>
+                    <span class="detail-value">{{ productName }}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Modelo:</span>
+                    <span class="detail-value">{{ model }}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Tipo de Tela:</span>
+                    <span class="detail-value">{{ fabricType }}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Cantidad Total:</span>
+                    <span class="detail-value">{{ totalQuantity }} unidades</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-label">Fecha del Pedido:</span>
+                    <span class="detail-value">{{ orderDate }}</span>
+                </div>
+            </div>
+            
+            <!-- MESSAGE -->
+            <div class="message">
+                <strong>¿Preguntas o necesitas hacer cambios?</strong><br>
+                Contáctanos a través de nuestros canales de atención al cliente. ¡Estamos aquí para apoyarte en cada paso!
+            </div>
+            
+        </div>
+        
+        <!-- FOOTER -->
+        <div class="footer">
+            <p><strong>© 2026 Dark Lion - La fuerza de tus ideas</strong></p>
+            <p>Diseños innovadores para tu negocio</p>
+            <p>
+                📧 <a href="mailto:darklionteamsoftware@gmail.com">darklionteamsoftware@gmail.com</a>
+            </p>
+            <p style="margin-top: 15px; font-size: 11px; color: #999;">
+                Este es un correo automático. Por favor no respondas a este mensaje.
+            </p>
+        </div>
+        
+    </div>
+</body>
+</html>

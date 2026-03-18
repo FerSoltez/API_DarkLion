@@ -54,6 +54,7 @@ const os = __importStar(require("os"));
 const child_process_1 = require("child_process");
 const util_1 = require("util");
 const pushController_1 = require("./pushController");
+const emailService_1 = require("../services/emailService");
 const execFileAsync = (0, util_1.promisify)(child_process_1.execFile);
 const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
 // Helper para formatear fecha DD/MM/YYYY
@@ -223,10 +224,6 @@ const designController = {
             // Obtener archivo de imagen subido por multer
             const file = req.file;
             // ─── Validaciones ──────────────────────────────────────────
-            if (!file) {
-                res.status(400).json({ message: 'Se requiere un archivo de imagen (campo "image")' });
-                return;
-            }
             if (!name || !email || !id_product) {
                 res.status(400).json({ message: 'Faltan campos requeridos: name, email, id_product' });
                 return;
@@ -247,20 +244,25 @@ const designController = {
             const folio = `OP-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Date.now().toString().slice(-4)}`;
             // Generar fecha_pedido en formato DD/MM/YYYY
             const fecha_pedido = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+            // Sanitizar nombre del cliente para usar en archivos
+            const clienteSanitizado = name.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '');
             // Calcular cantidad_total como la suma de las cantidades de tallas
             const cantidad_total = tallas.reduce((sum, t) => sum + (Number(t.cantidad) || 0), 0);
             // ─── 1. Crear cliente ──────────────────────────────────────
             const client = yield Client_1.Client.create({ name, email, phone_number }, { transaction: t });
             const clientId = (_a = client.dataValues.id_client) !== null && _a !== void 0 ? _a : client.getDataValue('id_client');
-            // ─── 2. Subir imagen a Cloudinary ──────────────────────────
-            const clienteSanitizado = name.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '');
-            const imageResult = yield uploadBufferToCloudinary(file.buffer, {
-                folder: 'imagenes',
-                resource_type: 'image',
-                public_id: `${clienteSanitizado}_${Date.now()}`,
-            });
-            const design_file_url = imageResult.secure_url;
-            imagePublicId = imageResult.public_id;
+            // ─── 2. Subir imagen a Cloudinary (opcional) ──────────────
+            let design_file_url = '';
+            let imagePublicId = '';
+            if (file) {
+                const imageResult = yield uploadBufferToCloudinary(file.buffer, {
+                    folder: 'imagenes',
+                    resource_type: 'image',
+                    public_id: `${clienteSanitizado}_${Date.now()}`,
+                });
+                design_file_url = imageResult.secure_url;
+                imagePublicId = imageResult.public_id;
+            }
             // ─── 3. Crear diseño ───────────────────────────────────────
             const design = yield Design_1.Design.create({
                 id_client: clientId,
@@ -337,6 +339,26 @@ const designController = {
             io.emit('new_order', newOrder);
             // ─── 9. Enviar Push Notification a todos los suscriptores ─
             (0, pushController_1.sendPushToAll)('Nuevo Pedido - Dark Lion', `${name} ha realizado un nuevo pedido`, newOrder).catch((err) => console.error('Error enviando push:', err));
+            // ─── 10. Enviar Correo de Confirmación ───────────────────
+            try {
+                yield (0, emailService_1.sendDesignConfirmationEmail)({
+                    clientName: clientData.name,
+                    clientEmail: clientData.email,
+                    designId: designId,
+                    folio: folio,
+                    productName: modelo,
+                    model: modelo,
+                    fabricType: tela,
+                    totalQuantity: cantidad_total,
+                    orderDate: fecha_pedido,
+                    designImageUrl: design_file_url,
+                    documentUrl: uploadResult.secure_url,
+                });
+            }
+            catch (emailError) {
+                console.error('⚠️ Error enviando correo de confirmación:', emailError);
+                // No lanzar error aquí - el pedido se creó exitosamente
+            }
             res.status(201).json({
                 message: 'Cliente, diseño y orden de producción creados exitosamente',
                 data: {
