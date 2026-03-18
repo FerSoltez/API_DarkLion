@@ -190,6 +190,10 @@ const designController = {
       const file = (req as any).file;
 
       // ─── Validaciones ──────────────────────────────────────────
+      if (!file) {
+        res.status(400).json({ message: 'Se requiere un archivo de imagen (campo "image")' });
+        return;
+      }
       if (!name || !email || !id_product) {
         res.status(400).json({ message: 'Faltan campos requeridos: name, email, id_product' });
         return;
@@ -224,19 +228,14 @@ const designController = {
       const client = await Client.create({ name, email, phone_number }, { transaction: t });
       const clientId = (client as any).dataValues.id_client ?? client.getDataValue('id_client');
 
-      // ─── 2. Subir imagen a Cloudinary (opcional) ──────────────
-      let design_file_url = '';
-      let imagePublicId = '';
-      
-      if (file) {
-        const imageResult = await uploadBufferToCloudinary(file.buffer, {
-          folder: 'imagenes',
-          resource_type: 'image',
-          public_id: `${clienteSanitizado}_${Date.now()}`,
-        });
-        design_file_url = imageResult.secure_url;
-        imagePublicId = imageResult.public_id;
-      }
+      // ─── 2. Subir imagen a Cloudinary (obligatorio) ──────────────
+      const imageResult = await uploadBufferToCloudinary(file.buffer, {
+        folder: 'imagenes',
+        resource_type: 'image',
+        public_id: `${clienteSanitizado}_${Date.now()}`,
+      });
+      const design_file_url = imageResult.secure_url;
+      const imagePublicId = imageResult.public_id;
 
       // ─── 3. Crear diseño ───────────────────────────────────────
       const design = await Design.create({
@@ -328,25 +327,25 @@ const designController = {
         newOrder
       ).catch((err) => console.error('Error enviando push:', err));
 
-      // ─── 10. Enviar Correo de Confirmación ───────────────────
-      try {
-        await sendDesignConfirmationEmail({
-          clientName: clientData.name,
-          clientEmail: clientData.email,
-          designId: designId,
-          folio: folio,
-          productName: modelo,
-          model: modelo,
-          fabricType: tela,
-          totalQuantity: cantidad_total,
-          orderDate: fecha_pedido,
-          designImageUrl: design_file_url,
-          documentUrl: uploadResult.secure_url,
-        });
-      } catch (emailError) {
-        console.error('⚠️ Error enviando correo de confirmación:', emailError);
-        // No lanzar error aquí - el pedido se creó exitosamente
-      }
+      // ─── 10. Enviar Correo de Confirmación (DESACTIVADO TEMPORALMENTE) ───────────────────
+      // try {
+      //   await sendDesignConfirmationEmail({
+      //     clientName: clientData.name,
+      //     clientEmail: clientData.email,
+      //     designId: designId,
+      //     folio: folio,
+      //     productName: modelo,
+      //     model: modelo,
+      //     fabricType: tela,
+      //     totalQuantity: cantidad_total,
+      //     orderDate: fecha_pedido,
+      //     designImageUrl: design_file_url,
+      //     documentUrl: uploadResult.secure_url,
+      //   });
+      // } catch (emailError) {
+      //   console.error('⚠️ Error enviando correo de confirmación:', emailError);
+      //   // No lanzar error aquí - el pedido se creó exitosamente
+      // }
 
       res.status(201).json({
         message: 'Cliente, diseño y orden de producción creados exitosamente',
