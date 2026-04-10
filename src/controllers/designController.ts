@@ -285,12 +285,14 @@ const designController = {
       tempJsonPath = '';
 
       // ─── 5. Subir Excel a Cloudinary ────────────────────────────
+      const folioSanitizado = folio.replace(/[^a-zA-Z0-9_-]/g, '');
+      const uniqueOrderFileId = `${clienteSanitizado}_${folioSanitizado}_${Date.now()}`;
       const uploadResult = await cloudinary.uploader.upload(outputXlsxPath, {
         resource_type: 'raw',
         folder: 'ordenes_produccion',
-        public_id: clienteSanitizado,
+        public_id: uniqueOrderFileId,
         format: 'xlsx',
-        overwrite: true,
+        overwrite: false,
       });
 
       // Limpiar Excel temporal

@@ -174,12 +174,14 @@ const designDocumentController = {
       // ─── 4. Subir a Cloudinary (carpeta ordenes_produccion) ────
       let uploadResult;
       try {
+        const folioSanitizado = folio.replace(/[^a-zA-Z0-9_-]/g, '');
+        const uniqueOrderFileId = `${clienteSanitizado}_${folioSanitizado}_${Date.now()}`;
         uploadResult = await cloudinary.uploader.upload(outputXlsxPath, {
           resource_type: 'raw',
           folder: 'ordenes_produccion',
-          public_id: clienteSanitizado,
+          public_id: uniqueOrderFileId,
           format: 'xlsx',
-          overwrite: true,
+          overwrite: false,
         });
       } catch (uploadError) {
         if (fs.existsSync(outputXlsxPath)) fs.unlinkSync(outputXlsxPath);
