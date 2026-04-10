@@ -12,9 +12,15 @@ import json
 import os
 import copy
 import io
+import tempfile
+import urllib.request
 import openpyxl
 from openpyxl.drawing.image import Image as XlImage
 from openpyxl.styles import Font
+from openpyxl.utils import column_index_from_string
+from openpyxl.utils.units import points_to_pixels, pixels_to_EMU
+from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor
+from openpyxl.drawing.xdr import XDRPositiveSize2D
 
 # Mapa de tallas: tipo -> talla -> celda de Excel
 MAPA_TALLAS = {
@@ -36,6 +42,79 @@ MAPA_TALLAS = {
 LISTA_FIRST_ROW = 9
 LISTA_LAST_ROW = 33
 LISTA_ITEMS_PER_SHEET = 25  # filas 9-33
+
+
+def _column_width_to_pixels(width):
+    """Convierte ancho de columna de Excel a pixeles (aproximado)."""
+    if width is None:
+        width = 8.43
+    return int((float(width) + 0.75) * 7)
+
+
+def _range_size_pixels(ws, start_col, end_col, start_row, end_row):
+    """Calcula tamaño en pixeles de un rango rectangular."""
+    total_width = 0
+    for col_idx in range(column_index_from_string(start_col), column_index_from_string(end_col) + 1):
+        letter = openpyxl.utils.get_column_letter(col_idx)
+        col_dim = ws.column_dimensions.get(letter)
+        total_width += _column_width_to_pixels(col_dim.width if col_dim else None)
+
+    total_height = 0
+    for row_idx in range(start_row, end_row + 1):
+        row_dim = ws.row_dimensions.get(row_idx)
+        row_height_points = row_dim.height if row_dim and row_dim.height is not None else 15
+        total_height += int(points_to_pixels(row_height_points))
+
+    return total_width, total_height
+
+
+def _download_image_to_temp(image_url):
+    """Descarga una imagen HTTP/HTTPS a un archivo temporal y devuelve su ruta."""
+    suffix = '.png'
+    lower_url = image_url.lower()
+    if '.jpg' in lower_url or '.jpeg' in lower_url:
+        suffix = '.jpg'
+    elif '.webp' in lower_url:
+        suffix = '.webp'
+
+    with urllib.request.urlopen(image_url, timeout=20) as response:
+        data = response.read()
+
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    temp_file.write(data)
+    temp_file.flush()
+    temp_file.close()
+    return temp_file.name
+
+
+def _insert_centered_image(ws, image_path):
+    """Inserta imagen centrada dentro del bloque A29:L46 en la hoja PORTADA."""
+    img = XlImage(image_path)
+
+    # Caja objetivo: A29:L46 (centrada visualmente según requerimiento)
+    box_width, box_height = _range_size_pixels(ws, 'A', 'L', 29, 46)
+    if img.width <= 0 or img.height <= 0 or box_width <= 0 or box_height <= 0:
+        return
+
+    scale = min(box_width / img.width, box_height / img.height)
+    target_width = max(1, int(img.width * scale))
+    target_height = max(1, int(img.height * scale))
+
+    x_offset = max(0, (box_width - target_width) // 2)
+    y_offset = max(0, (box_height - target_height) // 2)
+
+    img.width = target_width
+    img.height = target_height
+
+    marker = AnchorMarker(
+        col=column_index_from_string('A') - 1,
+        colOff=pixels_to_EMU(x_offset),
+        row=29 - 1,
+        rowOff=pixels_to_EMU(y_offset),
+    )
+    size = XDRPositiveSize2D(cx=pixels_to_EMU(target_width), cy=pixels_to_EMU(target_height))
+    img.anchor = OneCellAnchor(_from=marker, ext=size)
+    ws.add_image(img)
 
 
 def fill_lista_sheet(ws, items, start_number):
@@ -105,6 +184,7 @@ def generate(input_json_path: str, output_path: str):
     modelo = data['modelo']
     tallas = data.get('tallas', [])
     listado = data.get('listado', [])
+    design_image_url = data.get('design_image_url')
 
     # --- 1. Abrir plantilla con openpyxl ---
     wb = openpyxl.load_workbook(template_path)
@@ -150,6 +230,22 @@ def generate(input_json_path: str, output_path: str):
 
         ws[cell_addr] = cantidad
 
+    # --- 3.1 Insertar imagen del diseno en PORTADA (A29:L46 centrada) ---
+    temp_downloaded_image = ''
+    if design_image_url:
+        try:
+            image_path = design_image_url
+            if str(design_image_url).startswith('http://') or str(design_image_url).startswith('https://'):
+                image_path = _download_image_to_temp(design_image_url)
+                temp_downloaded_image = image_path
+
+            if os.path.exists(image_path):
+                _insert_centered_image(ws, image_path)
+            else:
+                print('WARN: No se encontro la imagen de diseno para insertar en PORTADA', file=sys.stderr)
+        except Exception as img_error:
+            print(f'WARN: No se pudo insertar la imagen de diseno: {img_error}', file=sys.stderr)
+
     # --- 4. Llenar LISTA 1 (y crear hojas adicionales si necesario) ---
     if listado:
         # Dividir listado en bloques de 25
@@ -187,6 +283,9 @@ def generate(input_json_path: str, output_path: str):
     # --- 5. Guardar directamente ---
     wb.save(output_path)
     wb.close()
+
+    if temp_downloaded_image and os.path.exists(temp_downloaded_image):
+        os.unlink(temp_downloaded_image)
 
     print(json.dumps({'success': True, 'output': output_path}))
 

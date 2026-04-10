@@ -261,7 +261,7 @@ const designController = {
                 public_id: `${clienteSanitizado}_${Date.now()}`,
             });
             const design_file_url = imageResult.secure_url;
-            const imagePublicId = imageResult.public_id;
+            imagePublicId = imageResult.public_id;
             // ─── 3. Crear diseño ───────────────────────────────────────
             const design = yield Design_1.Design.create({
                 id_client: clientId,
@@ -287,6 +287,7 @@ const designController = {
                 modelo,
                 tallas,
                 listado: listado || [],
+                design_image_url: design_file_url,
             };
             tempJsonPath = path.join(os.tmpdir(), `order_input_${Date.now()}.json`);
             outputXlsxPath = path.join(os.tmpdir(), `${clienteSanitizado}.xlsx`);

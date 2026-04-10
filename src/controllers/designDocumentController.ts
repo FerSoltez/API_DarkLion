@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { DesignDocument } from '../models/DesignDocument';
+import { Design } from '../models/Design';
 import { v2 as cloudinary } from 'cloudinary';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -109,6 +110,20 @@ const designDocumentController = {
 
       // ─── 2. Preparar datos para el script Python ──────────────
       const clienteSanitizado = cliente.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g, '');
+
+      // Obtener imagen asociada al diseño para incrustarla en PORTADA
+      const design = await Design.findByPk(id_design);
+      if (!design) {
+        res.status(404).json({ message: `Diseño con id ${id_design} no encontrado` });
+        return;
+      }
+      const designData = design.toJSON() as any;
+      const designImageUrl = designData.design_file_url;
+      if (!designImageUrl) {
+        res.status(400).json({ message: 'El diseño no tiene imagen asociada (design_file_url)' });
+        return;
+      }
+
       const inputData = {
         template_path: templatePath,
         folio,
@@ -119,6 +134,7 @@ const designDocumentController = {
         modelo,
         tallas,
         listado: listado || [],
+        design_image_url: designImageUrl,
       };
 
       const tempJsonPath = path.join(os.tmpdir(), `order_input_${Date.now()}.json`);
